@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bio-Rates: Food Security Derivative Simulator</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between">
+
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50 px-6 py-4">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <span class="text-xs font-semibold tracking-widest text-emerald-400 uppercase">SFM: Food Security & Bioscience</span>
+                <h1 class="text-2xl font-bold text-white tracking-tight">Thermal Sterilization Kinetics App</h1>
+            </div>
+            <div class="text-sm bg-slate-800/80 border border-slate-700 rounded-lg px-3 py-1.5 text-slate-400">
+                Context: <span class="text-emerald-400 font-medium">Malaysian Palm Oil & Fruit Puree Processing</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow">
+        
+        <div class="lg:col-span-5 flex flex-col gap-6">
+            
+            <div class="bg-slate-800/50 border border-slate-800 rounded-xl p-5 shadow-xl backdrop-blur-sm">
+                <h2 class="text-lg font-bold text-emerald-400 mb-2 flex items-center gap-2">
+                    <span>🔬</span> The Bioscience Scenario
+                </h2>
+                <p class="text-sm text-slate-300 leading-relaxed">
+                    In food processing labs across Malaysia (e.g., MARDI, MPOB), maintaining strict thermal profiles is critical for food security. Over-heating destroys heat-sensitive vitamins, while under-heating fails to eliminate pathogens like <em>Clostridium botulinum</em>. 
+                </p>
+                <p class="text-sm text-slate-300 mt-2 leading-relaxed">
+                    This simulator tracks the degradation concentration of a key nutrient/microbe population $C(t)$ over time $t$ (minutes) during high-temperature sterilization.
+                </p>
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-400 italic">
+                    Inspired by kinetics models found in: <span class="text-slate-300 font-mono">"Malaysian Journal of Microbiology (MJM)"</span> & <span class="text-slate-300 font-mono">"Journal of Oil Palm Research (JOPR)"</span>.
+                </div>
+            </div>
+
+            <div class="bg-slate-800/50 border border-slate-800 rounded-xl p-5 shadow-xl">
+                <h2 class="text-lg font-bold text-sky-400 mb-3 flex items-center gap-2">
+                    <span>📐</span> Mathematical Framework
+                </h2>
+                <div class="space-y-4 text-sm">
+                    <div>
+                        <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Concentration Function:</span>
+                        <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-700/50 font-mono text-center text-sky-300 text-base my-1">
+                            $C(t) = 100 \cdot e^{-0.15 \cdot t}$
+                        </div>
+                        <p class="text-xs text-slate-400">Where 100 is the initial concentration (%) and $k = 0.15$ is the reaction rate constant at 121°C.</p>
+                    </div>
+                    
+                    <div>
+                        <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">The First Derivative (Rate of Change):</span>
+                        <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-700/50 font-mono text-center text-emerald-300 text-base my-1">
+                            $C'(t) = -15 \cdot e^{-0.15 \cdot t}$
+                        </div>
+                        <p class="text-xs text-slate-400">Derived using the Chain Rule: $\frac{d}{dt}[e^{u}] = e^{u} \cdot \frac{du}{dt}$. This gives the exact processing speed at any instant.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="inspector-card" class="bg-gradient-to-br from-slate-800 to-slate-850 border-2 border-dashed border-slate-700 rounded-xl p-5 flex-grow flex flex-col justify-center items-center text-center min-h-[180px] transition-all duration-300">
+                <div id="inspector-default">
+                    <div class="text-4xl mb-2 text-slate-500">🖱️</div>
+                    <h3 class="font-semibold text-slate-300 text-base">Interactive Calculus Inspector</h3>
+                    <p class="text-xs text-slate-400 max-w-xs mt-1">Click anywhere on the graph curve to calculate the derivative and instantaneous rate of change.</p>
+                </div>
+                <div id="inspector-results" class="hidden w-full space-y-3 text-left">
+                    <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Processing Time ($t$):</span>
+                        <span id="res-time" class="font-mono text-white text-base bg-slate-900 px-2 py-0.5 rounded">0.00 min</span>
+                    </div>
+                    <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Remaining Concentration ($C$):</span>
+                        <span id="res-conc" class="font-mono text-sky-400 text-base font-semibold">0.00%</span>
+                    </div>
+                    <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Derivative $C'(t)$:</span>
+                        <span id="res-deriv" class="font-mono text-emerald-400 text-base font-bold">0.00 %/min</span>
+                    </div>
+                    <div class="bg-slate-900/80 rounded-lg p-3 border border-slate-700 mt-2">
+                        <span class="block text-[10px] font-bold text-amber-400 uppercase tracking-widest mb-1">Layman Explanation</span>
+                        <p id="res-layman" class="text-xs text-slate-300 leading-relaxed"></p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="lg:col-span-7 flex flex-col gap-4 bg-slate-800/30 border border-slate-800 rounded-xl p-4 shadow-xl">
+            <div class="flex justify-between items-center flex-wrap gap-2">
+                <div>
+                    <h2 class="text-lg font-bold text-white">Sterilization Degradation Curve</h2>
+                    <p class="text-xs text-slate-400">Calculus visualization of a first-order kinetic reaction</p>
+                </div>
+                <button id="reset-btn" class="text-xs font-medium bg-emerald-500 hover:bg-emerald-600 text-slate-950 px-3 py-1.5 rounded-lg shadow-md transition-colors cursor-pointer">
+                    🔄 Replay Animation
+                </button>
+            </div>
+
+            <div class="relative flex-grow min-h-[350px] md:min-h-[400px] bg-slate-950/60 rounded-xl p-2 border border-slate-800">
+                <canvas id="kineticsChart"></canvas>
+            </div>
+            
+            <div class="flex items-center justify-between text-xs text-slate-400 px-2">
+                <span class="flex items-center gap-1">
+                    <span class="w-2.5 h-2.5 rounded-full bg-sky-400 inline-block"></span> $C(t)$ Concentration
+                </span>
+                <span class="text-slate-500 italic">Click the grid line cross-sections along the line to inspect rates</span>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="border-t border-slate-800 bg-slate-950 text-slate-500 text-xs py-4 px-6 text-center">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+            <div>Food Security Simulation Framework (BSc. SFM Track)</div>
+            <div class="text-slate-400">Powered by Chart.js & Web Dev Canvas Technologies</div>
+        </div>
+    </footer>
+
+    <script>
+        const ctx = document.getElementById('kineticsChart').getContext('2d');
+        let chartInstance = null;
+
+        // Mathematical Engine Parameters
+        const k = 0.15; // Reaction rate constant
+        const initialConcentration = 100;
+
+        // Generate data arrays for time t = 0 to 20 minutes
+        const timePoints = [];
+        const concentrationData = [];
+        for (let t = 0; t <= 20; t += 0.5) {
+            timePoints.push(t);
+            // f(x) = 100 * e^(-0.15 * t)
+            concentrationData.push(initialConcentration * Math.exp(-k * t));
+        }
+
+        // Kinetic Calculus Functions
+        function calculateConcentration(t) {
+            return initialConcentration * Math.exp(-k * t);
+        }
+
+        function calculateDerivative(t) {
+            // f'(x) = -15 * e^(-0.15 * t)
+            return -k * initialConcentration * Math.exp(-k * t);
+        }
+
+        function getLaymanExplanation(t, deriv) {
+            const absRate = Math.abs(deriv).toFixed(2);
+            if (t < 3) {
+                return `At this early stage (${t} mins), processing heat is intensely destroying elements. The safety profile or nutrient structure is dropping rapidly at a massive speed of ${absRate}% every single minute. Extreme caution is needed here!`;
+            } else if (t >= 3 && t <= 10) {
+                return `In this middle processing zone (${t} mins), destruction stabilizes. The reaction rate has slowed down to ${absRate}% per minute as less unreacted compound remains. Highly predictable phase for food safety managers.`;
+            } else {
+                return `Late stage pasteurization (${t} mins). The compound is mostly depleted, meaning the rate of change drops down to a crawl at just ${absRate}% per minute. Leaving the product in the heat any longer yields diminished safety returns but risks burning the product quality.`;
+            }
+        }
+
+        // Initialize and animate Chart
+        function initChart() {
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timePoints,
+                    datasets: [{
+                        label: 'Concentration C(t) (%)',
+                        data: concentrationData,
+                        borderColor: '#38bdf8', // sky-400
+                        borderWidth: 3,
+                        backgroundColor: 'rgba(56, 189, 248, 0.05)',
+                        fill: true,
+                        tension: 0.2,
+                        pointBackgroundColor: '#38bdf8',
+                        pointHoverRadius: 8,
+                        pointHoverBackgroundColor: '#34d399', // emerald-400
+                        pointHoverBorderColor: '#fff',
+                        pointHoverBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 2200,
+                        easing: 'easeOutQuart'
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Sterilization Processing Time, t (Minutes)',
+                                color: '#94a3b8',
+                                font: { weight: 'bold', size: 12 }
+                            },
+                            grid: { color: 'rgba(51, 65, 85, 0.3)' },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        y: {
+                            min: 0,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Retained Profile Concentration, C(t) (%)',
+                                color: '#94a3b8',
+                                font: { weight: 'bold', size: 12 }
+                            },
+                            grid: { color: 'rgba(51, 65, 85, 0.3)' },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` Concentration: ${context.parsed.y.toFixed(2)}%`;
+                                }
+                            }
+                        }
+                    },
+                    // Capture point selections to compute derivatives interactively
+                    onClick: (e, elements) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            const t = timePoints[index];
+                            const conc = concentrationData[index];
+                            const deriv = calculateDerivative(t);
+                            
+                            updateInspector(t, conc, deriv);
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update Dashboard Cards Dynamically on Calculus Interaction
+        function updateInspector(t, conc, deriv) {
+            const defaultDiv = document.getElementById('inspector-default');
+            const resultsDiv = document.getElementById('inspector-results');
+            const cardElement = document.getElementById('inspector-card');
+
+            // Style switching
+            defaultDiv.classList.add('hidden');
+            resultsDiv.classList.remove('hidden');
+            cardElement.classList.remove('border-dashed', 'border-slate-700');
+            cardElement.classList.add('border-solid', 'border-emerald-500/40', 'bg-slate-800/80');
+
+            // Set Values
+            document.getElementById('res-time').innerText = `${t.toFixed(1)} mins`;
+            document.getElementById('res-conc').innerText = `${conc.toFixed(2)}%`;
+            document.getElementById('res-deriv').innerText = `${deriv.toFixed(2)} %/min`;
+            document.getElementById('res-layman').innerText = getLaymanExplanation(t, deriv);
+        }
+
+        // Wire Event Listeners
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            // Clear inspector values back to default state on replay
+            document.getElementById('inspector-default').classList.remove('hidden');
+            document.getElementById('inspector-results').classList.add('hidden');
+            const card = document.getElementById('inspector-card');
+            card.classList.add('border-dashed', 'border-slate-700');
+            card.classList.remove('border-solid', 'border-emerald-500/40', 'bg-slate-800/80');
+            
+            initChart();
+        });
+
+        // Fire-up Application Chart on initial runtime boot
+        window.addEventListener('DOMContentLoaded', initChart);
+    </script>
+</body>
+</html>
